@@ -6,6 +6,7 @@ library(terra)
 library(sf)
 library(randomForest)
 library(mlr3)
+library(mlr)
 
 savdat <mlr3savdat <- read.csv('SAV.csv')
 savpoints <- read.csv('SAV_points.csv')
@@ -129,7 +130,7 @@ SAVmodel$predicted
 SAVmap <- terra::predict(saw, SAVmodel)
 plot(SAVmap)
 
-writeRaster(SAVmap, filename = 'outputs/saw1.tif')
+writeRaster(SAVmap, filename = 'outputs/saw2.tif')
 
 #lhb
 rforestLearner <- makeLearner('classif.randomForest')
@@ -150,7 +151,7 @@ SAVmodel$predicted
 SAVmap <- terra::predict(lhb, SAVmodel)
 plot(SAVmap)
 
-writeRaster(SAVmap, filename = 'outputs/lhb1.tif')
+writeRaster(SAVmap, filename = 'outputs/lhb2.tif')
 
 #jfb
 rforestLearner <- makeLearner('classif.randomForest')
@@ -173,7 +174,7 @@ plot(SAVmap)
 
 writeRaster(SAVmap, filename = 'outputs/jfb1.tif')
 
-#mrs
+#mrs## - not included
 rforestLearner <- makeLearner('classif.randomForest')
 SAVTask <- makeClassifTask(data = mrs_d, target = 'train')
 SAVtrained <- train(rforestLearner, SAVTask)
@@ -193,3 +194,31 @@ SAVmap <- terra::predict(mrs, SAVmodel)
 plot(SAVmap)
 
 writeRaster(SAVmap, filename = 'outputs/mrs1.tif')
+
+##accuracy assessment
+sav_points <- terra::vect('Layers/sav_surveys.shp')
+
+sav_lhb <- sav_points[grepl("LHB", sav_points$SQ), ]
+sav_saw <- sav_points[grepl("SAW", sav_points$SQ), ]
+sav_jfb <- sav_points[grepl("JFB", sav_points$SQ), ]
+sav_sak <- sav_points[grepl("SAK", sav_points$SQ), ]
+
+slhb <- terra::extract(SAVmap, sav_lhb)
+slhb1 <- as.data.frame(cbind(sav_lhb, slhb))
+slhb1 <- slhb1 %>% mutate(survey = if_else(Tot >= 25, 'dense', 'bare')) %>% mutate(check = if_else(survey == class, 1, 0))
+sum(slhb1$check)/30
+
+ssaw <- terra::extract(SAVmap, sav_saw)
+ssaw1 <- as.data.frame(cbind(sav_saw, ssaw))
+ssaw1 <- ssaw1 %>% mutate(survey = if_else(Tot >= 25, 'dense', 'bare')) %>% mutate(check = if_else(survey == class, 1, 0))
+sum(ssaw1$check)/30
+
+sjfb <- terra::extract(SAVmap, sav_jfb)
+sjfb1 <- as.data.frame(cbind(sav_jfb, sjfb))
+sjfb1 <- sjfb1 %>% mutate(survey = if_else(Tot >= 25, 'dense', 'bare')) %>% mutate(check = if_else(survey == class, 1, 0))
+sum(sjfb1$check)/30
+
+ssak <- terra::extract(SAVmap, sav_sak)
+ssak1 <- as.data.frame(cbind(sav_sak, ssak))
+ssak1 <- ssak1 %>% mutate(survey = if_else(Tot >= 25, 'dense', 'bare')) %>% mutate(check = if_else(survey == class, 1, 0))
+sum(ssak1$check)/30
